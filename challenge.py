@@ -44,9 +44,34 @@ patient_data = [
 
 def solution(data):
     ... # TODO: transform the input into a more readable format that looks like expected_output
-    # 
+    results = []
+    for patient in data:
+        new_patient_dict = {'patient_id': patient['patient_id']}
+        diagnoses_descriptions = []
+        priority_diagnoses = []
+        malformed_diagnoses = []
+        for diagnosis in patient['diagnoses']:
+            query_url = base_url.replace("{search_fields}", 'code')
+            query_url = query_url.replace("search_term", str(diagnosis))
+            response = requests.get(query_url).json()
+            if response[0] == 0:  # check if invalid code
+                malformed_diagnoses.append(diagnosis)
+            else:
+                description = response[3][0][1]
+                diagnoses_descriptions.append((diagnosis, description))
+                if 'covid' in description.lower() or 'respiratory failure' in description.lower():
+                    priority_diagnoses.append(description)
+        new_patient_dict['diagnoses'] = diagnoses_descriptions
+        new_patient_dict['priority_diagnoses'] = priority_diagnoses
+        new_patient_dict['malformed_diagnoses'] = malformed_diagnoses
+        results.append(new_patient_dict)
+    # sort in descending order based on the number of 'priority_diagnoses'
+    sorted_results = sorted(results, key=lambda patient: len(patient['priority_diagnoses']), reverse=True)
+    return sorted_results
+
 
 output = solution(patient_data)
+
 
 expected_output = [
         {'patient_id': 1,
@@ -98,3 +123,5 @@ except AssertionError:
     print('error: your output does not match the expected output')
 else:
     print('success!')
+
+
